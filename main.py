@@ -1,34 +1,48 @@
-import feedparser, requests, datetime
-from requests.auth import HTTPBasicAuth
-from openai import OpenAI
+import feedparser
+import requests
+import datetime
 import os
+from openai import OpenAI
 
-# 从系统环境变量读取密钥（安全做法）
-API_KEY = os.getenv("OPENAI_API_KEY")
-WP_URL = os.getenv("WP_URL")
-WP_USER = os.getenv("WP_USER")
-WP_PWD = os.getenv("WP_PWD")
-
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), 
-    base_url="https://api.deepseek.com")
+# 配置 DeepSeek
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"), 
+    base_url="https://api.deepseek.com" # 确保是 DeepSeek 的地址
+)
 
 def start():
-    # 1. 抓取数据
     print("正在搜索最新动态...")
-    news = feedparser.parse("https://news.google.com/rss/search?q=neutrino+energy+technology")
-    context = "最新消息：\n" + "\n".join([e.title for e in news.entries[:5]])
+    # 抓取新闻
+    feed = feedparser.parse("https://news.google.com/rss/search?q=neutrino+energy+technology&hl=zh-CN")
+    context = "\n".join([e.title for e in feed.entries[:5]])
 
-    # 2. AI 写稿
     print("AI 正在构思文章...")
-    prompt = f"请根据以下信息，写一篇关于中微子能源的科普美文，要求标题专业，内容丰富，适合发布在WordPress：\n{context}"
-    response = client.chat.completions.create(model="gpt-4o", messages=[{"role": "user", "content": prompt}])
-    content = response.choices[0].message.content
+    try:
+        # 注意：这里模型必须改为 deepseek-chat
+        response = client.chat.completions.create(
+            model="deepseek-chat", 
+            messages=[{"role": "user", "content": f"请根据以下标题写一篇关于中微子能源的深度科普报道：\n{context}"}]
+        )
+        article_content = response.choices[0].message.content
+    except Exception as e:
+        print(f"AI 生成失败: {e}")
+        return
 
-    # 3. 发布到 WordPress
-    post_data = {"title": f"中微子能源前沿报告 ({datetime.date.today()})", "content": content, "status": "publish"}
-    res = requests.post(WP_URL, json=post_data, auth=HTTPBasicAuth(WP_USER, WP_PWD))
-    if res.status_code == 201: print("发布成功！")
-    else: print("发布失败，请检查配置")
+    # 生成网页
+    html_template = f"""
+    <html>
+    <head><meta charset="utf-8"><title>中微子能源周报</title></head>
+    <body style="font-family:sans-serif; max-width:700px; margin:auto; padding:20px; line-height:1.7;">
+        <h1>中微子能源每日快讯</h1>
+        <p>发布时间: {datetime.date.today()}</p>
+        <div style="white-space: pre-wrap;">{article_content}</div>
+    </body>
+    </html>
+    """
+
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html_template)
+    print("网页 index.html 已生成")
 
 if __name__ == "__main__":
     start()
