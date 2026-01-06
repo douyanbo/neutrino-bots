@@ -1,22 +1,28 @@
-name: Daily Post Bot
+name: Daily DeepSeek Bot
 on:
   schedule:
     - cron: '0 1 * * *' # 每天北京时间早上9点自动运行
-  workflow_dispatch: # 允许手动点击运行
+  workflow_dispatch: # 允许手动点击运行按钮
+permissions:
+  contents: write # 这一行非常关键，允许机器人修改你的仓库文件
 jobs:
   run-script:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with: {python-version: '3.9'}
-      - name: Install
+      - name: Install dependencies
         run: pip install requests feedparser openai
-      - name: Execute
+      - name: Execute script
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          WP_URL: ${{ secrets.WP_URL }}
-          WP_USER: ${{ secrets.WP_USER }}
-          WP_PWD: ${{ secrets.WP_PWD }}
         run: python main.py
+      - name: Push results
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add index.html
+          git commit -m "Update Daily AI Report" || exit 0
+          git push
