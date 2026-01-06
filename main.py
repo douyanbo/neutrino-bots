@@ -9,7 +9,8 @@ WP_URL = os.getenv("WP_URL")
 WP_USER = os.getenv("WP_USER")
 WP_PWD = os.getenv("WP_PWD")
 
-client = OpenAI(api_key=API_KEY)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), 
+    base_url="https://api.deepseek.com")
 
 def start():
     # 1. 抓取数据
