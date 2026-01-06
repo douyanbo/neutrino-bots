@@ -1,0 +1,22 @@
+name: Daily Post Bot
+on:
+  schedule:
+    - cron: '0 1 * * *' # 每天北京时间早上9点自动运行
+  workflow_dispatch: # 允许手动点击运行
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with: {python-version: '3.9'}
+      - name: Install
+        run: pip install requests feedparser openai
+      - name: Execute
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          WP_URL: ${{ secrets.WP_URL }}
+          WP_USER: ${{ secrets.WP_USER }}
+          WP_PWD: ${{ secrets.WP_PWD }}
+        run: python main.py
